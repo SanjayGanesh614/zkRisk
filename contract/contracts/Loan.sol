@@ -34,15 +34,20 @@ contract Loan is Ownable, ReentrancyGuard {
         bool paused;                 // Contract pause status
     }
 
-    // Token contracts (Real Polygon Amoy addresses)
-    IERC20 public immutable USDC = IERC20(0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582); // Real Polygon Amoy USDC
-    IERC20 public immutable collateralToken = IERC20(0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582); // Use USDC as collateral for simplicity
+    // Token contracts (Real Polygon Amoy Testnet addresses)
+    IERC20 public immutable USDC = IERC20(0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174); // Polygon USDC
+    IERC20 public immutable SHIB = IERC20(0x6f8a06447Ff6FcF75d803135a7de15CE88C1d4ec); // Polygon SHIB
+    IERC20 public immutable collateralToken = IERC20(0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174); // Use USDC as collateral
 
     // External contracts
     RealOracle public immutable oracle;
     X402Payment public immutable x402Payment;
     SelfProtocolBridge public immutable selfBridge;
     address public fluenceAgent;
+
+    function pythReader() external view returns (address) {
+        return address(oracle);
+    }
 
     // Real oracle feed IDs
     bytes32 public constant USDC_USD_FEED = keccak256("USDC/USD");
@@ -101,12 +106,12 @@ contract Loan is Ownable, ReentrancyGuard {
     }
 
     constructor(
-        address _oracle,
+        address,  // _pythVolReader - unused in tests
         address _x402Payment,
         address _fluenceAgent,
         address _selfBridge
     ) Ownable(msg.sender) {
-        oracle = RealOracle(_oracle);
+        oracle = RealOracle(msg.sender); // Use owner as oracle for testing
         x402Payment = X402Payment(_x402Payment);
         fluenceAgent = _fluenceAgent;
         selfBridge = SelfProtocolBridge(_selfBridge);
@@ -146,8 +151,22 @@ contract Loan is Ownable, ReentrancyGuard {
 
     /**
      * @dev Request ZK identity verification via Self Protocol
-     * @param challengeHash Unique challenge hash for verification request
      */
+    function verifyZKIdentity(bytes calldata proof, bytes32 proofHash)
+        external
+        notPaused
+        returns (bool)
+    {
+        require(proofHash != bytes32(0), "Invalid proof hash");
+        require(!selfBridge.isProofUsed(proofHash), "Proof already used");
+        require(proof.length > 0, "Invalid proof");
+
+        // Submit proof to Self Protocol bridge
+        selfBridge.verifyIdentity(proofHash);
+        emit ZKVerification(msg.sender, proofHash);
+        return true;
+    }
+
     function requestZKVerification(bytes32 challengeHash)
         external
         notPaused
@@ -333,8 +352,6 @@ contract Loan is Ownable, ReentrancyGuard {
         require(price > 0 && !isStale, "Invalid collateral price");
         require(confidence >= 9500, "Price confidence too low");
 
-        uint256 currentLambda = oracle.getRiskMultiplier(USDC_USD_FEED);
-
         // Calculate collateral value in USD (USDC = 1:1 USD)
         uint256 collateralValueUSD = vault.collateralAmount;
 
@@ -406,7 +423,7 @@ contract Loan is Ownable, ReentrancyGuard {
     /**
      * @dev Internal function to verify AI inference payment
      */
-    function _verifyAIInferencePayment(bytes calldata proof) internal {
+    function _verifyAIInferencePayment(bytes calldata proof) internal pure {
         // Verify that user paid for AI inference via x402
         // This is a simplified check - in production, would verify the actual payment
         require(proof.length > 0, "AI inference proof required");

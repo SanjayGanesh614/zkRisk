@@ -2,11 +2,13 @@ const { ethers } = require("hardhat");
 const fs = require("fs");
 const path = require("path");
 
-// Real contract addresses on Polygon Amoy testnet
+// Real contract addresses on Polygon mainnet/testnet
 const REAL_ADDRESSES = {
-  USDC: "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582", // Real USDC on Polygon Amoy
+  USDC: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", // Real Polygon USDC
+  PYTH: "0x2880aB155794e7179B6bB66e884d92FF75B5A3ed", // Real Pyth oracle
+  SHIB: "0x6f8a06447Ff6FcF75d803135a7de15CE88C1d4ec", // Real SHIB token
   FLUENCE_AGENT: "0x0000000000000000000000000000000000000001", // Placeholder - needs real Fluence agent
-  HYPERLANE_MAILBOX: "0x742d35Cc6e64B2C5c8e4F1234567890123456789", // Real Hyperlane mailbox
+  HYPERLANE_MAILBOX: "0x2971b9Aec44bE4eb673DF1B88cDB57b96eefe8a4", // Real Hyperlane mailbox on Polygon
   SELF_VERIFIER_CELO: "0x742d35Cc6e64B2C5c8e4F1234567890123456789", // Real Self verifier
 };
 

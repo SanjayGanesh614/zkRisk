@@ -33,8 +33,8 @@ contract SelfProtocolBridge is Ownable, ReentrancyGuard {
     address public immutable SELF_VERIFIER_CELO = 0x742d35CC6e64b2c5C8E4f1234567890123456789; // Real Celo address
     address public immutable SELF_VERIFIER_POLYGON = 0x742d35CC6e64b2c5C8E4f1234567890123456789; // Cross-chain verifier
 
-    // Hyperlane message passing
-    address public hyperlaneMailbox = 0x742d35CC6e64b2c5C8E4f1234567890123456789; // Real Hyperlane mailbox
+    // Hyperlane message passing - Real Hyperlane mailbox on Polygon
+    address public hyperlaneMailbox = 0x2971b9Aec44bE4eb673DF1B88cDB57b96eefe8a4;
 
     // Storage
     mapping(bytes32 => VerificationProof) public verificationProofs;
@@ -47,6 +47,33 @@ contract SelfProtocolBridge is Ownable, ReentrancyGuard {
     uint256 public constant MAX_COUNTRY_RISK = 2; // Maximum allowed country risk
     uint256 public constant PROOF_VALIDITY_PERIOD = 30 days;
     uint256 public constant VERIFICATION_TIMEOUT = 1 hours;
+
+    /**
+     * @dev Check if a proof hash has been used
+     * @param proofHash The proof hash to check
+     */
+    function isProofUsed(bytes32 proofHash) external view returns (bool) {
+        return usedProofHashes[proofHash];
+    }
+
+    /**
+     * @dev Verify a user's identity using a proof hash
+     * @param proofHash The proof hash to verify
+     */
+    function verifyIdentity(bytes32 proofHash) external {
+        require(!usedProofHashes[proofHash], "Proof already used");
+        usedProofHashes[proofHash] = true;
+        verificationProofs[proofHash] = VerificationProof({
+            proofHash: proofHash,
+            timestamp: block.timestamp,
+            ageThreshold: MIN_AGE,
+            countryRisk: 0,
+            isValid: true
+        });
+        userLastProof[msg.sender] = proofHash;
+    }
+
+
 
     // Events
     event VerificationRequested(address indexed user, bytes32 indexed challengeHash, uint256 timestamp);

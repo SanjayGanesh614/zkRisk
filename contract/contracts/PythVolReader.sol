@@ -12,9 +12,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract PythVolReader is Ownable {
     IPyth public immutable pyth;
 
-    // Price feed IDs (these need to be updated with actual Pyth feed IDs)
-    bytes32 public constant SHIB_USD_FEED = 0xfedc35b66b7e28bf33c88f5bfea1b6c0a34b5b85568fff3067bfce9b4e073c16;
-    bytes32 public constant ETH_USD_FEED = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace;
+    // Real Pyth Price feed IDs for Polygon mainnet
+    bytes32 public constant SHIB_USD_FEED = 0x4e3037c822d852d79af3ac80e35eb420ee3b870dca49f9344a38ef4773fb0585;
+    bytes32 public constant ETH_USD_FEED = 0xca80ba6dc32e08d06f1aa886011eed1d77c77be9eb761cc10d72b7d0a2fd57a6;
     bytes32 public constant BTC_USD_FEED = 0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43;
 
     struct PriceData {
