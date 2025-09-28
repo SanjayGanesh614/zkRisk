@@ -10,11 +10,25 @@ module.exports = {
       optimizer: {
         enabled: true,
         runs: 200
-      }
+      },
+      viaIR: true
     }
   },
   networks: {
-    hardhat: {
+    polygonAmoy: {
+      url: process.env.POLYGON_RPC || "https://rpc-amoy.polygon.technology",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 80002,
+      gasPrice: 30000000000, // 30 gwei
+    },
+    celoAlfajores: {
+      url: process.env.CELO_RPC || "https://alfajores-forno.celo-testnet.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 44787,
+      gasPrice: 1000000000, // 1 gwei
+    },
+    localhost: {
+      url: "http://127.0.0.1:8545",
       chainId: 31337
     }
   },
