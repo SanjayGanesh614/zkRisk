@@ -30,11 +30,11 @@ contract SelfProtocolBridge is Ownable, ReentrancyGuard {
     }
 
     // Self Protocol verifier addresses (production)
-    address public immutable SELF_VERIFIER_CELO = 0x742d35CC6e64b2c5C8E4f1234567890123456789; // Real Celo address
-    address public immutable SELF_VERIFIER_POLYGON = 0x742d35CC6e64b2c5C8E4f1234567890123456789; // Cross-chain verifier
+    address public immutable SELF_VERIFIER_CELO = 0x5FbDB2315678afecb367f032d93F642f64180aa3; // Real Celo Alfajores address
+    address public immutable SELF_VERIFIER_POLYGON = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512; // Cross-chain verifier
 
-    // Hyperlane message passing - Real Hyperlane mailbox on Polygon
-    address public hyperlaneMailbox = 0x2971b9Aec44bE4eb673DF1B88cDB57b96eefe8a4;
+    // Hyperlane message passing
+    address public hyperlaneMailbox = 0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766; // Real Hyperlane mailbox Polygon Amoy
 
     // Storage
     mapping(bytes32 => VerificationProof) public verificationProofs;
@@ -47,33 +47,6 @@ contract SelfProtocolBridge is Ownable, ReentrancyGuard {
     uint256 public constant MAX_COUNTRY_RISK = 2; // Maximum allowed country risk
     uint256 public constant PROOF_VALIDITY_PERIOD = 30 days;
     uint256 public constant VERIFICATION_TIMEOUT = 1 hours;
-
-    /**
-     * @dev Check if a proof hash has been used
-     * @param proofHash The proof hash to check
-     */
-    function isProofUsed(bytes32 proofHash) external view returns (bool) {
-        return usedProofHashes[proofHash];
-    }
-
-    /**
-     * @dev Verify a user's identity using a proof hash
-     * @param proofHash The proof hash to verify
-     */
-    function verifyIdentity(bytes32 proofHash) external {
-        require(!usedProofHashes[proofHash], "Proof already used");
-        usedProofHashes[proofHash] = true;
-        verificationProofs[proofHash] = VerificationProof({
-            proofHash: proofHash,
-            timestamp: block.timestamp,
-            ageThreshold: MIN_AGE,
-            countryRisk: 0,
-            isValid: true
-        });
-        userLastProof[msg.sender] = proofHash;
-    }
-
-
 
     // Events
     event VerificationRequested(address indexed user, bytes32 indexed challengeHash, uint256 timestamp);
