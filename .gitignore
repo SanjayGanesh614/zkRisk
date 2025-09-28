@@ -6,3 +6,4 @@ coverage/
 .cache/
 /contract/artifacts
 /contract/cache
+contract/.env.example
