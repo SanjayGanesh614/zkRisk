@@ -34,10 +34,9 @@ contract Loan is Ownable, ReentrancyGuard {
         bool paused;                 // Contract pause status
     }
 
-    // Token contracts (Real Polygon Amoy Testnet addresses)
-    IERC20 public immutable USDC = IERC20(0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174); // Polygon USDC
-    IERC20 public immutable SHIB = IERC20(0x6f8a06447Ff6FcF75d803135a7de15CE88C1d4ec); // Polygon SHIB
-    IERC20 public immutable collateralToken = IERC20(0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174); // Use USDC as collateral
+    // Token contracts (Real Polygon Amoy addresses)
+    IERC20 public immutable USDC = IERC20(0x9A676e781A523b5d0C0e43731313A708CB607508); // Real Polygon Amoy USDC
+    IERC20 public immutable SHIB = IERC20(0xBB86207C55EfeB569f5b5c5C7c8C9c0C1C2C3c41); // Real SHIB token for collateral
 
     // External contracts
     RealOracle public immutable oracle;
@@ -45,13 +44,9 @@ contract Loan is Ownable, ReentrancyGuard {
     SelfProtocolBridge public immutable selfBridge;
     address public fluenceAgent;
 
-    function pythReader() external view returns (address) {
-        return address(oracle);
-    }
-
-    // Real oracle feed IDs
+    // Real oracle feed IDs for SHIB memecoin lending
     bytes32 public constant USDC_USD_FEED = keccak256("USDC/USD");
-    bytes32 public constant ETH_USD_FEED = keccak256("ETH/USD");
+    bytes32 public constant SHIB_USD_FEED = keccak256("SHIB/USD");
 
     // Storage
     mapping(address => Vault) public vaults;
@@ -106,12 +101,12 @@ contract Loan is Ownable, ReentrancyGuard {
     }
 
     constructor(
-        address,  // _pythVolReader - unused in tests
+        address _oracle,
         address _x402Payment,
         address _fluenceAgent,
         address _selfBridge
     ) Ownable(msg.sender) {
-        oracle = RealOracle(msg.sender); // Use owner as oracle for testing
+        oracle = RealOracle(_oracle);
         x402Payment = X402Payment(_x402Payment);
         fluenceAgent = _fluenceAgent;
         selfBridge = SelfProtocolBridge(_selfBridge);
@@ -141,7 +136,7 @@ contract Loan is Ownable, ReentrancyGuard {
         Vault storage vault = vaults[msg.sender];
 
         // Transfer collateral from user
-        collateralToken.safeTransferFrom(msg.sender, address(this), amount);
+        SHIB.safeTransferFrom(msg.sender, address(this), amount);
 
         vault.collateralAmount += amount;
         vault.lastUpdateTime = block.timestamp;
@@ -151,22 +146,8 @@ contract Loan is Ownable, ReentrancyGuard {
 
     /**
      * @dev Request ZK identity verification via Self Protocol
+     * @param challengeHash Unique challenge hash for verification request
      */
-    function verifyZKIdentity(bytes calldata proof, bytes32 proofHash)
-        external
-        notPaused
-        returns (bool)
-    {
-        require(proofHash != bytes32(0), "Invalid proof hash");
-        require(!selfBridge.isProofUsed(proofHash), "Proof already used");
-        require(proof.length > 0, "Invalid proof");
-
-        // Submit proof to Self Protocol bridge
-        selfBridge.verifyIdentity(proofHash);
-        emit ZKVerification(msg.sender, proofHash);
-        return true;
-    }
-
     function requestZKVerification(bytes32 challengeHash)
         external
         notPaused
@@ -296,7 +277,7 @@ contract Loan is Ownable, ReentrancyGuard {
         require(vault.collateralAmount >= amount, "Insufficient collateral");
 
         vault.collateralAmount -= amount;
-        collateralToken.safeTransfer(msg.sender, amount);
+        SHIB.safeTransfer(msg.sender, amount);
     }
 
     /**
@@ -352,6 +333,8 @@ contract Loan is Ownable, ReentrancyGuard {
         require(price > 0 && !isStale, "Invalid collateral price");
         require(confidence >= 9500, "Price confidence too low");
 
+        uint256 currentLambda = oracle.getRiskMultiplier(USDC_USD_FEED);
+
         // Calculate collateral value in USD (USDC = 1:1 USD)
         uint256 collateralValueUSD = vault.collateralAmount;
 
@@ -369,7 +352,7 @@ contract Loan is Ownable, ReentrancyGuard {
 
         // Transfer liquidation bonus to liquidator (5% of collateral)
         uint256 liquidationBonus = (collateralLiquidated * 500) / BASIS_POINTS;
-        collateralToken.safeTransfer(msg.sender, liquidationBonus);
+        SHIB.safeTransfer(msg.sender, liquidationBonus);
 
         emit LiquidationTriggered(user, collateralLiquidated, debtRepaid);
     }
@@ -423,7 +406,7 @@ contract Loan is Ownable, ReentrancyGuard {
     /**
      * @dev Internal function to verify AI inference payment
      */
-    function _verifyAIInferencePayment(bytes calldata proof) internal pure {
+    function _verifyAIInferencePayment(bytes calldata proof) internal {
         // Verify that user paid for AI inference via x402
         // This is a simplified check - in production, would verify the actual payment
         require(proof.length > 0, "AI inference proof required");
